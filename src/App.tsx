@@ -30,6 +30,8 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [currentView, setCurrentView] = useState('home');
+  const [analyzeUrl, setAnalyzeUrl] = useState('');
+  const [analyzeStatus, setAnalyzeStatus] = useState<'idle' | 'analyzing' | 'results'>('idle');
 
   useEffect(() => {
     const handleScroll = () => {
@@ -48,21 +50,21 @@ export default function App() {
       {/* Navigation */}
       <nav className={`fixed top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-white/90 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-5'}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-white shadow-lg overflow-hidden border-2 border-slate-100">
+          <div 
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer group"
+            onClick={() => setCurrentView('home')}
+          >
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-white shadow-lg overflow-hidden border-2 border-slate-100 group-hover:border-blue-200 transition-colors">
               <img src="https://placehold.co/100x100/8b5cf6/ffffff?text=C" alt="Crazy SEO Team Logo" className="h-full w-full object-cover" />
             </div>
-            <span 
-              className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 cursor-pointer"
-              onClick={() => setCurrentView('home')}
-            >
+            <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
               Crazy SEO Team
             </span>
           </div>
 
           {/* Desktop Nav */}
           <div className="hidden items-center gap-8 md:flex">
-            <a href="#services" onClick={() => setCurrentView('home')} className="text-sm font-semibold text-slate-700 transition-colors hover:text-blue-600">Services</a>
+            <button onClick={() => setCurrentView('services')} className="text-sm font-semibold text-slate-700 transition-colors hover:text-blue-600">Services</button>
             <a href="#about" onClick={() => setCurrentView('home')} className="text-sm font-semibold text-slate-700 transition-colors hover:text-blue-600">About Us</a>
             <a href="#results" onClick={() => setCurrentView('home')} className="text-sm font-semibold text-slate-700 transition-colors hover:text-blue-600">Results</a>
             <button onClick={() => setCurrentView('blog')} className="text-sm font-semibold text-slate-700 transition-colors hover:text-blue-600">Blog</button>
@@ -88,7 +90,7 @@ export default function App() {
         {isMobileMenuOpen && (
           <div className="absolute top-full left-0 w-full border-t border-slate-100 bg-white px-4 py-6 shadow-xl md:hidden">
             <div className="flex flex-col space-y-4">
-              <a href="#services" className="text-base font-semibold text-slate-900" onClick={() => { setIsMobileMenuOpen(false); setCurrentView('home'); }}>Services</a>
+              <button className="text-left text-base font-semibold text-slate-900" onClick={() => { setIsMobileMenuOpen(false); setCurrentView('services'); }}>Services</button>
               <a href="#about" className="text-base font-semibold text-slate-900" onClick={() => { setIsMobileMenuOpen(false); setCurrentView('home'); }}>About Us</a>
               <a href="#results" className="text-base font-semibold text-slate-900" onClick={() => { setIsMobileMenuOpen(false); setCurrentView('home'); }}>Results</a>
               <button className="text-left text-base font-semibold text-slate-900" onClick={() => { setIsMobileMenuOpen(false); setCurrentView('blog'); }}>Blog</button>
@@ -223,6 +225,91 @@ export default function App() {
         </div>
       </section>
 
+      {/* SEO Analyzer Section */}
+      <section className="bg-[#1a66ff] py-16 sm:py-24">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">SEO Analyzer</h2>
+          <p className="text-lg text-blue-100 mb-10 max-w-2xl mx-auto">
+            Analyze your WordPress site to detect critical errors and get actionable insights to boost your SEO and get more traffic.
+          </p>
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              setAnalyzeStatus('analyzing');
+              setTimeout(() => setAnalyzeStatus('results'), 2000);
+            }}
+            className="flex flex-col sm:flex-row max-w-3xl mx-auto rounded-md overflow-hidden shadow-lg"
+          >
+            <input 
+              type="url" 
+              placeholder="https://crazyseoteam.in/" 
+              value={analyzeUrl}
+              onChange={(e) => setAnalyzeUrl(e.target.value)}
+              required
+              className="flex-grow px-6 py-4 bg-[#0d52e6] text-white placeholder-blue-300 outline-none focus:bg-[#0c4ad0] transition-colors"
+            />
+            <button 
+              type="submit"
+              disabled={analyzeStatus === 'analyzing'}
+              className="bg-[#00b65a] hover:bg-[#009c4d] transition-colors px-10 py-4 text-white font-bold text-lg whitespace-nowrap disabled:opacity-80"
+            >
+              {analyzeStatus === 'analyzing' ? 'Analyzing...' : 'Analyze'}
+            </button>
+          </form>
+
+          {analyzeStatus === 'results' && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-12 bg-white rounded-2xl p-8 text-left shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-6">
+                <div>
+                  <h3 className="text-2xl font-bold text-slate-900">Analysis Results</h3>
+                  <p className="text-slate-500 mt-1">Report for: <span className="font-semibold text-blue-600">{analyzeUrl}</span></p>
+                </div>
+                <div className="flex items-center justify-center w-20 h-20 rounded-full border-4 border-green-500 text-green-500 font-bold text-2xl">
+                  85/100
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <h4 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <CheckCircle2 className="text-green-500 h-5 w-5" /> Passed Checks
+                  </h4>
+                  <ul className="space-y-3 text-slate-600 text-sm">
+                    <li className="flex items-start gap-2"><div className="mt-1 h-2 w-2 rounded-full bg-green-500 shrink-0"></div> SSL Certificate is valid and active.</li>
+                    <li className="flex items-start gap-2"><div className="mt-1 h-2 w-2 rounded-full bg-green-500 shrink-0"></div> Robots.txt file is present and correctly formatted.</li>
+                    <li className="flex items-start gap-2"><div className="mt-1 h-2 w-2 rounded-full bg-green-500 shrink-0"></div> XML Sitemap is available.</li>
+                    <li className="flex items-start gap-2"><div className="mt-1 h-2 w-2 rounded-full bg-green-500 shrink-0"></div> Mobile viewport is configured correctly.</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <Target className="text-orange-500 h-5 w-5" /> Areas for Improvement
+                  </h4>
+                  <ul className="space-y-3 text-slate-600 text-sm">
+                    <li className="flex items-start gap-2"><div className="mt-1 h-2 w-2 rounded-full bg-orange-500 shrink-0"></div> 3 images are missing ALT attributes.</li>
+                    <li className="flex items-start gap-2"><div className="mt-1 h-2 w-2 rounded-full bg-orange-500 shrink-0"></div> Page load speed is slightly below average (2.4s).</li>
+                    <li className="flex items-start gap-2"><div className="mt-1 h-2 w-2 rounded-full bg-orange-500 shrink-0"></div> Meta description is missing on 2 pages.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+                <button 
+                  onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full transition-colors"
+                >
+                  Get a Full Detailed Audit
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </div>
+      </section>
+
       {/* Marketing Tools Marquee */}
       <section className="border-y border-slate-100 bg-slate-50 py-10 overflow-hidden">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mb-6 text-center">
@@ -270,7 +357,7 @@ export default function App() {
                   </li>
                 ))}
               </ul>
-              <button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-blue-50 hover:-translate-y-1 hover:shadow-md mt-2">
+              <button onClick={() => setCurrentView('services')} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-blue-50 hover:-translate-y-1 hover:shadow-md mt-2">
                 Learn more <ArrowRight className="h-4 w-4 text-blue-600" />
               </button>
             </div>
@@ -291,7 +378,7 @@ export default function App() {
                   </li>
                 ))}
               </ul>
-              <button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-orange-50 hover:-translate-y-1 hover:shadow-md mt-2">
+              <button onClick={() => setCurrentView('services')} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-orange-50 hover:-translate-y-1 hover:shadow-md mt-2">
                 Learn more <ArrowRight className="h-4 w-4 text-orange-600" />
               </button>
             </div>
@@ -312,7 +399,7 @@ export default function App() {
                   </li>
                 ))}
               </ul>
-              <button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-purple-50 hover:-translate-y-1 hover:shadow-md mt-2">
+              <button onClick={() => setCurrentView('services')} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-purple-50 hover:-translate-y-1 hover:shadow-md mt-2">
                 Learn more <ArrowRight className="h-4 w-4 text-purple-600" />
               </button>
             </div>
@@ -333,7 +420,7 @@ export default function App() {
                   </li>
                 ))}
               </ul>
-              <button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-emerald-50 hover:-translate-y-1 hover:shadow-md mt-2">
+              <button onClick={() => setCurrentView('services')} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-emerald-50 hover:-translate-y-1 hover:shadow-md mt-2">
                 Learn more <ArrowRight className="h-4 w-4 text-emerald-600" />
               </button>
             </div>
@@ -354,7 +441,7 @@ export default function App() {
                   </li>
                 ))}
               </ul>
-              <button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-indigo-50 hover:-translate-y-1 hover:shadow-md mt-2">
+              <button onClick={() => setCurrentView('services')} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-indigo-50 hover:-translate-y-1 hover:shadow-md mt-2">
                 Learn more <ArrowRight className="h-4 w-4 text-indigo-600" />
               </button>
             </div>
@@ -375,7 +462,7 @@ export default function App() {
                   </li>
                 ))}
               </ul>
-              <button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-rose-50 hover:-translate-y-1 hover:shadow-md mt-2">
+              <button onClick={() => setCurrentView('services')} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-rose-50 hover:-translate-y-1 hover:shadow-md mt-2">
                 Learn more <ArrowRight className="h-4 w-4 text-rose-600" />
               </button>
             </div>
@@ -535,9 +622,13 @@ export default function App() {
             {/* Founder */}
             <div className="flex flex-col items-center text-center bg-white rounded-3xl p-10 shadow-sm border border-slate-100 hover:shadow-xl transition-all">
               <img 
-                src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-                alt="Anand Kumar Singh - Founder" 
-                className="w-48 h-48 rounded-full object-cover mb-6 border-4 border-slate-50 shadow-lg"
+                src="/founder.jpg" 
+                alt="Founder Image" 
+                className="max-w-full h-auto rounded-2xl object-cover mb-6 border-4 border-slate-50 shadow-lg"
+                style={{ maxWidth: '100%', height: 'auto' }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23e2e8f0"/><text x="50%" y="40%" font-family="sans-serif" font-size="14" font-weight="bold" fill="%2364748b" text-anchor="middle">Image Missing</text><text x="50%" y="55%" font-family="sans-serif" font-size="12" fill="%2364748b" text-anchor="middle">Upload to public folder</text><text x="50%" y="65%" font-family="sans-serif" font-size="12" font-weight="bold" fill="%2364748b" text-anchor="middle">as founder.jpg</text></svg>`;
+                }}
               />
               <h4 className="text-2xl font-bold text-slate-900 mb-1">Anand Kumar Singh</h4>
               <p className="text-blue-600 font-semibold mb-6 uppercase tracking-wide text-sm">Founder</p>
@@ -549,9 +640,12 @@ export default function App() {
             {/* Co-Founder */}
             <div className="flex flex-col items-center text-center bg-white rounded-3xl p-10 shadow-sm border border-slate-100 hover:shadow-xl transition-all">
               <img 
-                src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-                alt="Saurabh Anand - Co-Founder" 
+                src="/co-founder.jpg" 
+                alt="Co-Founder Image" 
                 className="w-48 h-48 rounded-full object-cover mb-6 border-4 border-slate-50 shadow-lg"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23e2e8f0"/><text x="50%" y="40%" font-family="sans-serif" font-size="14" font-weight="bold" fill="%2364748b" text-anchor="middle">Image Missing</text><text x="50%" y="55%" font-family="sans-serif" font-size="12" fill="%2364748b" text-anchor="middle">Upload to public folder</text><text x="50%" y="65%" font-family="sans-serif" font-size="12" font-weight="bold" fill="%2364748b" text-anchor="middle">as co-founder.jpg</text></svg>`;
+                }}
               />
               <h4 className="text-2xl font-bold text-slate-900 mb-1">Saurabh Anand</h4>
               <p className="text-blue-600 font-semibold mb-6 uppercase tracking-wide text-sm">Co-Founder</p>
@@ -695,6 +789,83 @@ export default function App() {
       </main>
       )}
 
+      {currentView === 'services' && (
+        <main className="pt-32 pb-20 lg:pt-40 lg:pb-32 bg-slate-50 min-h-screen">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-3xl mx-auto mb-16">
+              <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-6">Our AI-Powered Services</h1>
+              <p className="text-lg text-slate-600">We leverage cutting-edge Artificial Intelligence to supercharge every aspect of your digital marketing strategy, delivering unprecedented results and efficiency.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {/* AI SEO */}
+              <div className="bg-white rounded-3xl p-10 shadow-sm border border-slate-200 hover:shadow-xl transition-all group">
+                <div className="h-14 w-14 rounded-2xl bg-blue-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+                  <Bot className="h-7 w-7 text-blue-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-4">AI-Driven SEO</h3>
+                <p className="text-slate-600 mb-6 leading-relaxed">
+                  We use advanced machine learning algorithms to analyze search intent, predict algorithm updates, and generate highly optimized content that ranks faster and stays at the top longer.
+                </p>
+                <ul className="space-y-3 mb-8">
+                  <li className="flex items-center text-slate-700 font-medium text-sm"><CheckCircle2 className="h-4 w-4 text-blue-600 mr-3 flex-shrink-0" /> Predictive Keyword Analysis</li>
+                  <li className="flex items-center text-slate-700 font-medium text-sm"><CheckCircle2 className="h-4 w-4 text-blue-600 mr-3 flex-shrink-0" /> Automated Technical Audits</li>
+                  <li className="flex items-center text-slate-700 font-medium text-sm"><CheckCircle2 className="h-4 w-4 text-blue-600 mr-3 flex-shrink-0" /> Semantic Content Optimization</li>
+                </ul>
+              </div>
+
+              {/* AI PPC */}
+              <div className="bg-white rounded-3xl p-10 shadow-sm border border-slate-200 hover:shadow-xl transition-all group">
+                <div className="h-14 w-14 rounded-2xl bg-orange-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+                  <Cpu className="h-7 w-7 text-orange-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-4">Programmatic PPC</h3>
+                <p className="text-slate-600 mb-6 leading-relaxed">
+                  Stop wasting ad spend. Our AI bidding models analyze millions of data points in real-time to adjust bids, target the most profitable audiences, and maximize your ROAS automatically.
+                </p>
+                <ul className="space-y-3 mb-8">
+                  <li className="flex items-center text-slate-700 font-medium text-sm"><CheckCircle2 className="h-4 w-4 text-orange-600 mr-3 flex-shrink-0" /> Real-Time Bid Adjustments</li>
+                  <li className="flex items-center text-slate-700 font-medium text-sm"><CheckCircle2 className="h-4 w-4 text-orange-600 mr-3 flex-shrink-0" /> Dynamic Ad Copy Generation</li>
+                  <li className="flex items-center text-slate-700 font-medium text-sm"><CheckCircle2 className="h-4 w-4 text-orange-600 mr-3 flex-shrink-0" /> Predictive Audience Targeting</li>
+                </ul>
+              </div>
+
+              {/* AI Content */}
+              <div className="bg-white rounded-3xl p-10 shadow-sm border border-slate-200 hover:shadow-xl transition-all group">
+                <div className="h-14 w-14 rounded-2xl bg-purple-100 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
+                  <Megaphone className="h-7 w-7 text-purple-600" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-4">Smart Content Creation</h3>
+                <p className="text-slate-600 mb-6 leading-relaxed">
+                  Scale your content production without sacrificing quality. We blend human creativity with AI efficiency to produce engaging blogs, social posts, and video scripts at scale.
+                </p>
+                <ul className="space-y-3 mb-8">
+                  <li className="flex items-center text-slate-700 font-medium text-sm"><CheckCircle2 className="h-4 w-4 text-purple-600 mr-3 flex-shrink-0" /> AI-Assisted Copywriting</li>
+                  <li className="flex items-center text-slate-700 font-medium text-sm"><CheckCircle2 className="h-4 w-4 text-purple-600 mr-3 flex-shrink-0" /> Automated Social Scheduling</li>
+                  <li className="flex items-center text-slate-700 font-medium text-sm"><CheckCircle2 className="h-4 w-4 text-purple-600 mr-3 flex-shrink-0" /> Personalized Email Sequences</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="mt-20 bg-blue-600 rounded-3xl p-10 md:p-16 text-center shadow-2xl relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-500 via-blue-600 to-blue-800"></div>
+              <div className="relative z-10">
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Ready to Upgrade Your Marketing?</h2>
+                <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
+                  Let's discuss how our AI-powered strategies can give you an unfair advantage over your competitors.
+                </p>
+                <button 
+                  onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }}
+                  className="rounded-full bg-white px-10 py-4 text-lg font-bold text-blue-600 border-2 border-slate-900 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.3)] transition-all hover:bg-slate-50 hover:-translate-y-1"
+                >
+                  Book a Strategy Call
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+      )}
+
       {currentView === 'blog' && (
         <main className="pt-32 pb-20 lg:pt-40 lg:pb-32 bg-slate-50 min-h-screen">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -735,7 +906,10 @@ export default function App() {
               </div>
 
               {/* Article 2 */}
-              <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-xl transition-all cursor-pointer group flex flex-col">
+              <div 
+                onClick={() => setCurrentView('blog-ppc-2026')}
+                className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-xl transition-all cursor-pointer group flex flex-col"
+              >
                 <div className="relative h-56 overflow-hidden">
                   <img 
                     src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
@@ -762,7 +936,10 @@ export default function App() {
               </div>
 
               {/* Article 3 */}
-              <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-xl transition-all cursor-pointer group flex flex-col">
+              <div 
+                onClick={() => setCurrentView('blog-social-2026')}
+                className="bg-white rounded-3xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-xl transition-all cursor-pointer group flex flex-col"
+              >
                 <div className="relative h-56 overflow-hidden">
                   <img 
                     src="https://images.unsplash.com/photo-1557838923-2985c318be48?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
@@ -891,6 +1068,192 @@ export default function App() {
         </main>
       )}
 
+      {currentView === 'blog-ppc-2026' && (
+        <main className="pt-32 pb-20 lg:pt-40 lg:pb-32 bg-white">
+          <article className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+            <button 
+              onClick={() => setCurrentView('blog')}
+              className="inline-flex items-center text-sm font-bold text-slate-500 hover:text-blue-600 mb-8 transition-colors"
+            >
+              <ArrowRight className="mr-2 h-4 w-4 rotate-180" /> Back to Blog
+            </button>
+            
+            <div className="flex items-center gap-4 mb-6">
+              <span className="px-3 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full shadow-sm">PPC</span>
+              <span className="text-sm text-slate-500 font-medium">March 25, 2026</span>
+              <span className="text-sm text-slate-500 font-medium">• 5 min read</span>
+            </div>
+
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-900 mb-8 leading-tight">
+              Maximizing ROI with Google Ads in a Cookieless World
+            </h1>
+
+            <div className="flex items-center gap-4 mb-12 pb-8 border-b border-slate-100">
+              <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Author" className="w-12 h-12 rounded-full" />
+              <div>
+                <p className="text-base font-bold text-slate-900">Saurabh Anand</p>
+                <p className="text-sm text-slate-500">PPC Specialist at Crazy SEO Team</p>
+              </div>
+            </div>
+
+            <img 
+              src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" 
+              alt="PPC Strategies" 
+              className="w-full h-[400px] md:h-[500px] object-cover rounded-3xl mb-12 shadow-lg" 
+            />
+
+            <div className="prose prose-lg prose-slate max-w-none">
+              <p className="text-xl text-slate-600 leading-relaxed mb-8">
+                The era of third-party cookies is officially over. For years, digital marketers relied heavily on these tiny pieces of data to track user behavior, build retargeting lists, and attribute conversions. Now, with major browsers phasing them out and privacy regulations tightening globally, the traditional PPC playbook is obsolete. But this isn't the end of targeted advertising—it's an evolution.
+              </p>
+
+              <h2 className="text-3xl font-bold text-slate-900 mt-12 mb-6">1. The Shift to First-Party Data</h2>
+              <p className="text-slate-700 mb-6">
+                Without third-party cookies, your most valuable asset is the data you collect directly from your customers. This is known as first-party data. It includes information gathered from website interactions, CRM systems, email subscriptions, and purchase history.
+              </p>
+              <p className="text-slate-700 mb-8">
+                <strong>The Strategy:</strong> Focus on building robust lead generation mechanisms. Offer high-value gated content, exclusive discounts, or interactive tools in exchange for email addresses and phone numbers. Once you have this data, you can use Google's Customer Match to upload your lists and target these highly qualified users across Search, Shopping, and YouTube.
+              </p>
+
+              <img 
+                src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" 
+                alt="Data Analytics" 
+                className="w-full h-[400px] object-cover rounded-2xl mb-8" 
+              />
+
+              <h2 className="text-3xl font-bold text-slate-900 mt-12 mb-6">2. Embracing Enhanced Conversions</h2>
+              <p className="text-slate-700 mb-6">
+                Google's Enhanced Conversions feature is a critical tool for bridging the tracking gap. It works by securely hashing first-party customer data (like email addresses) collected on your website and sending it to Google. This hashed data is then matched against Google logged-in accounts, allowing you to attribute conversions even when cookies are blocked.
+              </p>
+              <ul className="list-disc pl-6 mb-8 text-slate-700 space-y-2">
+                <li><strong>Improved Accuracy:</strong> Recover conversions that would otherwise be lost due to browser restrictions.</li>
+                <li><strong>Better Bidding:</strong> Provide Google's Smart Bidding algorithms with more accurate data, leading to better optimization and lower CPAs.</li>
+                <li><strong>Privacy-Safe:</strong> The hashing process ensures that customer data remains secure and compliant with privacy regulations.</li>
+              </ul>
+
+              <h2 className="text-3xl font-bold text-slate-900 mt-12 mb-6">3. Leveraging AI and Broad Match</h2>
+              <p className="text-slate-700 mb-6">
+                As granular tracking becomes harder, we must lean into machine learning. Google's AI has become incredibly sophisticated at understanding intent and context.
+              </p>
+              <p className="text-slate-700 mb-8">
+                Pairing Broad Match keywords with Smart Bidding strategies (like Target CPA or Target ROAS) allows the algorithm to find converting users based on thousands of real-time signals, rather than relying solely on exact keyword matches or cookie-based audiences. This requires a shift in mindset: from micromanaging bids to managing the data inputs and business objectives you feed the AI.
+              </p>
+
+              <h2 className="text-3xl font-bold text-slate-900 mt-12 mb-6">Conclusion: A New Era of Measurement</h2>
+              <p className="text-slate-700 mb-8">
+                The cookieless world demands a more strategic, data-driven approach. By prioritizing first-party data, implementing advanced tracking solutions like Enhanced Conversions, and trusting AI-driven bidding, you can not only survive but thrive in this new privacy-first landscape.
+              </p>
+
+              <div className="bg-blue-50 rounded-2xl p-8 mt-12 border border-blue-100">
+                <h3 className="text-2xl font-bold text-slate-900 mb-4">Ready to Future-Proof Your PPC Strategy?</h3>
+                <p className="text-slate-700 mb-6">
+                  Don't let privacy changes hurt your ROI. Contact Crazy SEO Team today for a comprehensive audit of your Google Ads account and tracking setup.
+                </p>
+                <button 
+                  onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }}
+                  className="rounded-full bg-blue-600 px-8 py-3 text-base font-bold text-white border-2 border-slate-900 shadow-sm transition-all hover:bg-blue-700 hover:-translate-y-1 hover:shadow-md"
+                >
+                  Get Your Free Audit
+                </button>
+              </div>
+            </div>
+          </article>
+        </main>
+      )}
+
+      {currentView === 'blog-social-2026' && (
+        <main className="pt-32 pb-20 lg:pt-40 lg:pb-32 bg-white">
+          <article className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+            <button 
+              onClick={() => setCurrentView('blog')}
+              className="inline-flex items-center text-sm font-bold text-slate-500 hover:text-blue-600 mb-8 transition-colors"
+            >
+              <ArrowRight className="mr-2 h-4 w-4 rotate-180" /> Back to Blog
+            </button>
+            
+            <div className="flex items-center gap-4 mb-6">
+              <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded-full shadow-sm">Social Media</span>
+              <span className="text-sm text-slate-500 font-medium">March 18, 2026</span>
+              <span className="text-sm text-slate-500 font-medium">• 4 min read</span>
+            </div>
+
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-slate-900 mb-8 leading-tight">
+              The Rise of Short-Form Video: TikTok and Reels Strategy
+            </h1>
+
+            <div className="flex items-center gap-4 mb-12 pb-8 border-b border-slate-100">
+              <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Author" className="w-12 h-12 rounded-full" />
+              <div>
+                <p className="text-base font-bold text-slate-900">Anand Kumar Singh</p>
+                <p className="text-sm text-slate-500">Founder & Social Media Expert at Crazy SEO Team</p>
+              </div>
+            </div>
+
+            <img 
+              src="https://images.unsplash.com/photo-1557838923-2985c318be48?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" 
+              alt="Social Media Trends" 
+              className="w-full h-[400px] md:h-[500px] object-cover rounded-3xl mb-12 shadow-lg" 
+            />
+
+            <div className="prose prose-lg prose-slate max-w-none">
+              <p className="text-xl text-slate-600 leading-relaxed mb-8">
+                If a picture is worth a thousand words, a 15-second video is worth a million. Short-form video has completely taken over the social media landscape. Platforms like TikTok, Instagram Reels, and YouTube Shorts are no longer just for dancing teenagers; they are the most powerful discovery engines on the internet. For brands, ignoring short-form video in 2026 is equivalent to ignoring a billboard in Times Square.
+              </p>
+
+              <h2 className="text-3xl font-bold text-slate-900 mt-12 mb-6">1. The Algorithm Favors Entertainment, Not Just Followers</h2>
+              <p className="text-slate-700 mb-6">
+                The biggest shift in social media is the move from the "social graph" (who you follow) to the "interest graph" (what you like to watch). TikTok's For You Page and Instagram's Reels feed serve content based on user behavior and engagement, meaning a brand with zero followers can go viral overnight if their content is engaging enough.
+              </p>
+              <p className="text-slate-700 mb-8">
+                <strong>The Strategy:</strong> Stop creating polished, corporate commercials. Start creating native, entertaining content that provides immediate value, humor, or education. The first 3 seconds are critical—if you don't hook the viewer instantly, they will scroll past.
+              </p>
+
+              <img 
+                src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" 
+                alt="Video Content Creation" 
+                className="w-full h-[400px] object-cover rounded-2xl mb-8" 
+              />
+
+              <h2 className="text-3xl font-bold text-slate-900 mt-12 mb-6">2. Authenticity Over Production Value</h2>
+              <p className="text-slate-700 mb-6">
+                Users are craving authenticity. Highly produced, glossy videos often perform worse than raw, behind-the-scenes footage shot on a smartphone. People want to connect with the humans behind the brand.
+              </p>
+              <ul className="list-disc pl-6 mb-8 text-slate-700 space-y-2">
+                <li><strong>Founder Stories:</strong> Share the struggles and triumphs of building your business.</li>
+                <li><strong>Employee Takeovers:</strong> Let your team show what a day in the life looks like.</li>
+                <li><strong>User-Generated Content (UGC):</strong> Partner with micro-influencers and real customers to create authentic reviews and tutorials.</li>
+              </ul>
+
+              <h2 className="text-3xl font-bold text-slate-900 mt-12 mb-6">3. SEO for Social Media</h2>
+              <p className="text-slate-700 mb-6">
+                TikTok and Instagram are increasingly being used as search engines, especially by Gen Z. Users are searching for "best restaurants near me," "how to style a blazer," or "software for small business."
+              </p>
+              <p className="text-slate-700 mb-8">
+                To capitalize on this, you must optimize your video content for search. Use relevant keywords in your captions, on-screen text, and hashtags. Speak your keywords clearly in the video, as platforms auto-generate captions and use them for indexing.
+              </p>
+
+              <h2 className="text-3xl font-bold text-slate-900 mt-12 mb-6">Conclusion: Start Creating</h2>
+              <p className="text-slate-700 mb-8">
+                The barrier to entry for short-form video is incredibly low—all you need is a smartphone and an idea. The hardest part is simply starting. Test different formats, analyze the data, and double down on what works for your specific audience.
+              </p>
+
+              <div className="bg-blue-50 rounded-2xl p-8 mt-12 border border-blue-100">
+                <h3 className="text-2xl font-bold text-slate-900 mb-4">Need a Viral Video Strategy?</h3>
+                <p className="text-slate-700 mb-6">
+                  Our team knows exactly what it takes to stop the scroll and drive conversions. Let's build a short-form video strategy that elevates your brand.
+                </p>
+                <button 
+                  onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }}
+                  className="rounded-full bg-blue-600 px-8 py-3 text-base font-bold text-white border-2 border-slate-900 shadow-sm transition-all hover:bg-blue-700 hover:-translate-y-1 hover:shadow-md"
+                >
+                  Get Your Free Audit
+                </button>
+              </div>
+            </div>
+          </article>
+        </main>
+      )}
+
       {currentView === 'privacy' && (
         <main className="pt-32 pb-20 lg:pt-40 lg:pb-32 bg-white min-h-screen">
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 prose prose-slate prose-lg">
@@ -950,11 +1313,14 @@ export default function App() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
             <div className="lg:col-span-1">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white overflow-hidden border-2 border-slate-800">
+              <div 
+                className="flex items-center gap-3 mb-6 cursor-pointer group"
+                onClick={() => { setCurrentView('home'); window.scrollTo(0, 0); }}
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white overflow-hidden border-2 border-slate-800 group-hover:border-blue-400 transition-colors">
                   <img src="https://placehold.co/100x100/8b5cf6/ffffff?text=C" alt="Crazy SEO Team Logo" className="h-full w-full object-cover" />
                 </div>
-                <span className="text-2xl font-extrabold tracking-tight text-white">
+                <span className="text-2xl font-extrabold tracking-tight text-white group-hover:text-blue-400 transition-colors">
                   Crazy SEO Team
                 </span>
               </div>
@@ -974,11 +1340,11 @@ export default function App() {
             <div>
               <h4 className="text-white font-bold mb-6">Services</h4>
               <ul className="space-y-4 text-slate-400">
-                <li><button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('services')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="hover:text-blue-400 transition-colors">Search Engine Optimization</button></li>
-                <li><button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('services')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="hover:text-blue-400 transition-colors">Social Media Marketing</button></li>
-                <li><button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('services')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="hover:text-blue-400 transition-colors">Pay-Per-Click Advertising</button></li>
-                <li><button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('services')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="hover:text-blue-400 transition-colors">Web Design & Development</button></li>
-                <li><button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('services')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="hover:text-blue-400 transition-colors">Content Marketing</button></li>
+                <li><button onClick={() => setCurrentView('services')} className="hover:text-blue-400 transition-colors">Search Engine Optimization</button></li>
+                <li><button onClick={() => setCurrentView('services')} className="hover:text-blue-400 transition-colors">Social Media Marketing</button></li>
+                <li><button onClick={() => setCurrentView('services')} className="hover:text-blue-400 transition-colors">Pay-Per-Click Advertising</button></li>
+                <li><button onClick={() => setCurrentView('services')} className="hover:text-blue-400 transition-colors">Web Design & Development</button></li>
+                <li><button onClick={() => setCurrentView('services')} className="hover:text-blue-400 transition-colors">Content Marketing</button></li>
               </ul>
             </div>
 
