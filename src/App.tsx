@@ -67,20 +67,12 @@ export default function App() {
             <a href="#results" onClick={() => setCurrentView('home')} className="text-sm font-semibold text-slate-700 transition-colors hover:text-blue-600">Results</a>
             <button onClick={() => setCurrentView('blog')} className="text-sm font-semibold text-slate-700 transition-colors hover:text-blue-600">Blog</button>
             <a href="#contact" onClick={() => setCurrentView('home')} className="text-sm font-semibold text-slate-700 transition-colors hover:text-blue-600">Contact</a>
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={() => setCurrentView('payment')}
-                className="rounded-full bg-slate-100 px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-transparent transition-all hover:bg-slate-200 hover:-translate-y-0.5"
-              >
-                Pay Now
-              </button>
-              <button 
-                onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }}
-                className="rounded-full bg-blue-600 px-6 py-2.5 text-sm font-bold text-white border-2 border-slate-900 shadow-sm transition-all hover:bg-blue-700 hover:shadow-md hover:-translate-y-0.5"
-              >
-                Get Free Audit
-              </button>
-            </div>
+            <button 
+              onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }}
+              className="rounded-full bg-blue-600 px-6 py-2.5 text-sm font-bold text-white border-2 border-slate-900 shadow-sm transition-all hover:bg-blue-700 hover:shadow-md hover:-translate-y-0.5"
+            >
+              Get Free Audit
+            </button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -101,20 +93,12 @@ export default function App() {
               <a href="#results" className="text-base font-semibold text-slate-900" onClick={() => { setIsMobileMenuOpen(false); setCurrentView('home'); }}>Results</a>
               <button className="text-left text-base font-semibold text-slate-900" onClick={() => { setIsMobileMenuOpen(false); setCurrentView('blog'); }}>Blog</button>
               <a href="#contact" className="text-base font-semibold text-slate-900" onClick={() => { setIsMobileMenuOpen(false); setCurrentView('home'); }}>Contact</a>
-              <div className="flex flex-col gap-3 pt-2">
-                <button 
-                  onClick={() => { setIsMobileMenuOpen(false); setCurrentView('payment'); }}
-                  className="w-full rounded-full bg-slate-100 px-5 py-3 text-base font-bold text-slate-900 transition-all hover:bg-slate-200 hover:-translate-y-0.5"
-                >
-                  Pay Now
-                </button>
-                <button 
-                  onClick={() => { setIsMobileMenuOpen(false); setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }}
-                  className="w-full rounded-full bg-blue-600 px-5 py-3 text-base font-bold text-white border-2 border-slate-900 shadow-sm transition-all hover:bg-blue-700 hover:-translate-y-0.5"
-                >
-                  Get Free Audit
-                </button>
-              </div>
+              <button 
+                onClick={() => { setIsMobileMenuOpen(false); setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }}
+                className="w-full rounded-full bg-blue-600 px-5 py-3 text-base font-bold text-white border-2 border-slate-900 shadow-sm transition-all hover:bg-blue-700 hover:-translate-y-0.5"
+              >
+                Get Free Audit
+              </button>
             </div>
           </div>
         )}
