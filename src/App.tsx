@@ -29,7 +29,9 @@ import {
   Play,
   Pause,
   Volume2,
-  Loader2
+  Loader2,
+  Twitter,
+  Share2
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 
@@ -56,12 +58,13 @@ function TTSPlayer({ text }: { text: string }) {
   ];
 
   const handlePlay = async () => {
-    if (isPlaying) {
+    if (isPlaying || isLoading) {
       if (audioSourceRef.current) {
         audioSourceRef.current.stop();
         audioSourceRef.current = null;
       }
       setIsPlaying(false);
+      setIsLoading(false);
       return;
     }
 
@@ -74,11 +77,17 @@ function TTSPlayer({ text }: { text: string }) {
       // Translate if not English
       if (selectedLang !== 'en') {
         const langName = languages.find(l => l.code === selectedLang)?.name || 'English';
-        const translationResponse = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
-          contents: [{ parts: [{ text: `Translate the following text to ${langName}. Provide only the translated text, no other commentary: "${text}"` }] }],
-        });
-        textToRead = translationResponse.text || text;
+        try {
+          const translationResponse = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: [{ parts: [{ text: `Translate the following text to ${langName}. Provide only the translated text, no other commentary: "${text}"` }] }],
+          });
+          if (translationResponse.text) {
+            textToRead = translationResponse.text;
+          }
+        } catch (transError) {
+          console.error("Translation Error, falling back to English:", transError);
+        }
       }
 
       const response = await ai.models.generateContent({
@@ -107,6 +116,12 @@ function TTSPlayer({ text }: { text: string }) {
         }
         
         const audioContext = audioContextRef.current;
+        
+        // Resume context if suspended (browser requirement)
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
         const arrayBuffer = bytes.buffer;
         const int16Array = new Int16Array(arrayBuffer);
         const float32Array = new Float32Array(int16Array.length);
@@ -127,6 +142,7 @@ function TTSPlayer({ text }: { text: string }) {
       }
     } catch (error) {
       console.error("TTS Error:", error);
+      alert("Failed to generate audio. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -177,6 +193,70 @@ function TTSPlayer({ text }: { text: string }) {
       >
         {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />)}
         {isLoading ? 'Translating...' : (isPlaying ? 'Stop' : 'Listen')}
+      </button>
+    </div>
+  );
+}
+
+// Share Buttons Component
+function ShareButtons({ title }: { title: string }) {
+  const shareUrl = window.location.href;
+  
+  const shareLinks = [
+    {
+      name: 'Twitter',
+      icon: <Twitter className="h-4 w-4" />,
+      url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(shareUrl)}`,
+      color: 'hover:text-[#1DA1F2] hover:bg-[#1DA1F2]/10'
+    },
+    {
+      name: 'LinkedIn',
+      icon: <Linkedin className="h-4 w-4" />,
+      url: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`,
+      color: 'hover:text-[#0077B5] hover:bg-[#0077B5]/10'
+    },
+    {
+      name: 'Facebook',
+      icon: <Facebook className="h-4 w-4" />,
+      url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
+      color: 'hover:text-[#1877F2] hover:bg-[#1877F2]/10'
+    }
+  ];
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title,
+          url: shareUrl
+        });
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-2">Share:</span>
+      {shareLinks.map((link) => (
+        <a
+          key={link.name}
+          href={link.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`p-2 rounded-full text-slate-500 transition-all ${link.color}`}
+          title={`Share on ${link.name}`}
+        >
+          {link.icon}
+        </a>
+      ))}
+      <button
+        onClick={handleShare}
+        className="p-2 rounded-full text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-all sm:hidden"
+        title="Share"
+      >
+        <Share2 className="h-4 w-4" />
       </button>
     </div>
   );
@@ -373,7 +453,7 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
               >
-                Drive Growth with <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">Proven Strategies</span>
+                Dominate Search with <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">AI-Powered SEO</span>
               </motion.h1>
               
               <motion.p 
@@ -382,7 +462,7 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                Expert digital marketing agency offering SEO, social media marketing, web development, and PPC services. We transform your digital presence into a powerful revenue engine.
+                Crazy SEO Team is your strategic partner for explosive digital growth. We combine cutting-edge AI insights with proven SEO, PPC, and social media strategies to turn your website into a high-performance revenue engine.
               </motion.p>
               
               <motion.div 
@@ -467,36 +547,58 @@ export default function App() {
       </section>
 
       {/* SEO Analyzer Section */}
-      <section className="bg-[#1a66ff] py-16 sm:py-24">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">SEO Analyzer</h2>
-          <p className="text-lg text-blue-100 mb-10 max-w-2xl mx-auto">
-            Analyze your WordPress site to detect critical errors and get actionable insights to boost your SEO and get more traffic.
-          </p>
-          <form 
+      <section className="bg-[#1a66ff] py-20 sm:py-32 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-400/20 blur-3xl rounded-full -mr-48 -mt-48"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-400/20 blur-3xl rounded-full -ml-48 -mb-48"></div>
+        
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">
+              Get Your <span className="text-blue-200 underline decoration-blue-300 underline-offset-8">Free AI SEO Audit</span>
+            </h2>
+            <p className="text-xl text-blue-100 mb-12 max-w-2xl mx-auto leading-relaxed">
+              Discover the hidden technical issues holding your website back. Our AI-driven analyzer provides a comprehensive report on your SEO health and ranking potential in seconds.
+            </p>
+          </motion.div>
+
+          <motion.form 
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
             onSubmit={(e) => {
               e.preventDefault();
               setAnalyzeStatus('analyzing');
               setTimeout(() => setAnalyzeStatus('results'), 2000);
             }}
-            className="flex flex-col sm:flex-row max-w-3xl mx-auto rounded-md overflow-hidden shadow-lg"
+            className="flex flex-col sm:flex-row max-w-3xl mx-auto rounded-3xl overflow-hidden shadow-2xl border-4 border-white/10 backdrop-blur-sm"
           >
             <input 
               type="url" 
-              placeholder="https://crazyseoteam.in/" 
+              placeholder="Enter your website URL (e.g., https://example.com)" 
               value={analyzeUrl}
               onChange={(e) => setAnalyzeUrl(e.target.value)}
               required
-              className="flex-grow px-6 py-4 bg-[#0d52e6] text-white placeholder-blue-300 outline-none focus:bg-[#0c4ad0] transition-colors"
+              className="flex-grow px-8 py-6 bg-white/10 text-white placeholder-blue-200 outline-none focus:bg-white/20 transition-all text-lg"
             />
             <button 
               type="submit"
               disabled={analyzeStatus === 'analyzing'}
-              className="bg-[#00b65a] hover:bg-[#009c4d] transition-colors px-10 py-4 text-white font-bold text-lg whitespace-nowrap disabled:opacity-80"
+              className="bg-white hover:bg-blue-50 transition-all px-12 py-6 text-blue-600 font-extrabold text-xl whitespace-nowrap disabled:opacity-80 active:scale-95"
             >
-              {analyzeStatus === 'analyzing' ? 'Analyzing...' : 'Analyze'}
+              {analyzeStatus === 'analyzing' ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  Analyzing...
+                </div>
+              ) : 'Analyze Now'}
             </button>
-          </form>
+          </motion.form>
 
           {analyzeStatus === 'results' && (
             <motion.div 
@@ -1231,14 +1333,19 @@ export default function App() {
             </h1>
 
             <div className="flex flex-wrap items-center gap-4 mb-12 pb-8 border-b border-slate-100">
-              <div className="flex items-center gap-4 flex-grow">
-                <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Anand Kumar Singh, Founder of Crazy SEO Team" className="w-12 h-12 rounded-full" />
-                <div>
-                  <p className="text-base font-bold text-slate-900">Anand Kumar Singh</p>
-                  <p className="text-sm text-slate-500">Founder & SEO Expert at Crazy SEO Team</p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-6 p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                <div className="flex items-center gap-4 flex-grow">
+                  <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Anand Kumar Singh, Founder of Crazy SEO Team" className="w-12 h-12 rounded-full" />
+                  <div>
+                    <p className="text-base font-bold text-slate-900">Anand Kumar Singh</p>
+                    <p className="text-sm text-slate-500">Founder & SEO Expert at Crazy SEO Team</p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-4">
+                  <TTSPlayer text="SEO in 2026: Navigating the AI-First Search Landscape. The digital marketing world is undergoing its most dramatic shift since the invention of the search engine. If you are still optimizing your website using the playbooks from 2023, you are already falling behind. The search landscape has fundamentally shifted. With AI Overviews dominating results, traditional SEO requires a complete overhaul. Focus on experience-driven queries, become the primary source for AI citations, and prioritize E-E-A-T. Video and visual search are also becoming dominant. Adapt or fall behind." />
+                  <ShareButtons title="SEO in 2026: Navigating the AI-First Search Landscape" />
                 </div>
               </div>
-              <TTSPlayer text="SEO in 2026: Navigating the AI-First Search Landscape. The digital marketing world is undergoing its most dramatic shift since the invention of the search engine. If you are still optimizing your website using the playbooks from 2023, you are already falling behind. The search landscape has fundamentally shifted. With AI Overviews dominating results, traditional SEO requires a complete overhaul. Focus on experience-driven queries, become the primary source for AI citations, and prioritize E-E-A-T. Video and visual search are also becoming dominant. Adapt or fall behind." />
             </div>
 
             <img 
@@ -1333,14 +1440,19 @@ export default function App() {
             </h1>
 
             <div className="flex flex-wrap items-center gap-4 mb-12 pb-8 border-b border-slate-100">
-              <div className="flex items-center gap-4 flex-grow">
-                <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Saurabh Anand, PPC Specialist" className="w-12 h-12 rounded-full" />
-                <div>
-                  <p className="text-base font-bold text-slate-900">Saurabh Anand</p>
-                  <p className="text-sm text-slate-500">PPC Specialist at Crazy SEO Team</p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-6 p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                <div className="flex items-center gap-4 flex-grow">
+                  <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Saurabh Anand, PPC Specialist" className="w-12 h-12 rounded-full" />
+                  <div>
+                    <p className="text-base font-bold text-slate-900">Saurabh Anand</p>
+                    <p className="text-sm text-slate-500">PPC Specialist at Crazy SEO Team</p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-4">
+                  <TTSPlayer text="Maximizing ROI with Google Ads in a Cookieless World. The era of third-party cookies is officially over. Privacy regulations are tightening, and traditional PPC playbooks are obsolete. The new strategy focuses on first-party data collection, building lead generation mechanisms, and leveraging Google's Enhanced Conversions. Lean into machine learning and AI-driven bidding strategies like Broad Match to find converting users based on real-time signals. A new era of measurement demands a strategic, data-driven approach." />
+                  <ShareButtons title="Maximizing ROI with Google Ads in a Cookieless World" />
                 </div>
               </div>
-              <TTSPlayer text="Maximizing ROI with Google Ads in a Cookieless World. The era of third-party cookies is officially over. Privacy regulations are tightening, and traditional PPC playbooks are obsolete. The new strategy focuses on first-party data collection, building lead generation mechanisms, and leveraging Google's Enhanced Conversions. Lean into machine learning and AI-driven bidding strategies like Broad Match to find converting users based on real-time signals. A new era of measurement demands a strategic, data-driven approach." />
             </div>
 
             <img 
@@ -1429,14 +1541,19 @@ export default function App() {
             </h1>
 
             <div className="flex flex-wrap items-center gap-4 mb-12 pb-8 border-b border-slate-100">
-              <div className="flex items-center gap-4 flex-grow">
-                <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Anand Kumar Singh, Social Media Expert" className="w-12 h-12 rounded-full" />
-                <div>
-                  <p className="text-base font-bold text-slate-900">Anand Kumar Singh</p>
-                  <p className="text-sm text-slate-500">Founder & Social Media Expert at Crazy SEO Team</p>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-6 p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                <div className="flex items-center gap-4 flex-grow">
+                  <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Anand Kumar Singh, Social Media Expert" className="w-12 h-12 rounded-full" />
+                  <div>
+                    <p className="text-base font-bold text-slate-900">Anand Kumar Singh</p>
+                    <p className="text-sm text-slate-500">Founder & Social Media Expert at Crazy SEO Team</p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-4">
+                  <TTSPlayer text="The Rise of Short-Form Video: TikTok and Reels Strategy. Short-form video has completely taken over the social media landscape. Algorithms now favor entertainment over followers, meaning anyone can go viral with engaging content. Focus on authenticity over production value—raw, behind-the-scenes footage often performs better. Optimize your video content for search by using relevant keywords in captions and on-screen text. Start creating today; all you need is a smartphone and an idea." />
+                  <ShareButtons title="The Rise of Short-Form Video: TikTok and Reels Strategy" />
                 </div>
               </div>
-              <TTSPlayer text="The Rise of Short-Form Video: TikTok and Reels Strategy. Short-form video has completely taken over the social media landscape. Algorithms now favor entertainment over followers, meaning anyone can go viral with engaging content. Focus on authenticity over production value—raw, behind-the-scenes footage often performs better. Optimize your video content for search by using relevant keywords in captions and on-screen text. Start creating today; all you need is a smartphone and an idea." />
             </div>
 
             <img 
