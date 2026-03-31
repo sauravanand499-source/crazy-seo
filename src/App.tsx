@@ -49,8 +49,8 @@ export default function App() {
       <nav className={`fixed top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-white/90 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-5'}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-[#6a11cb] text-white shadow-lg shadow-blue-600/30">
-              <TrendingUp className="h-6 w-6 sm:h-7 sm:w-7" />
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-white shadow-lg overflow-hidden border-2 border-slate-100">
+              <img src="https://placehold.co/100x100/8b5cf6/ffffff?text=C" alt="Crazy SEO Team Logo" className="h-full w-full object-cover" />
             </div>
             <span 
               className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 cursor-pointer"
@@ -157,7 +157,7 @@ export default function App() {
                 </button>
                 <button 
                   onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('portfolio')?.scrollIntoView({behavior: 'smooth'}), 100); }}
-                  className="rounded-full bg-white px-8 py-4 text-base font-bold text-slate-900 border-2 border-slate-200 transition-all hover:bg-slate-50 hover:-translate-y-1 hover:shadow-sm"
+                  className="rounded-full bg-white px-8 py-4 text-base font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-slate-50 hover:-translate-y-1 hover:shadow-md"
                 >
                   View Our Work
                 </button>
@@ -270,9 +270,9 @@ export default function App() {
                   </li>
                 ))}
               </ul>
-              <a href="#" className="inline-flex items-center font-bold text-blue-600 hover:text-blue-700">
-                Learn more <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
+              <button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-blue-50 hover:-translate-y-1 hover:shadow-md mt-2">
+                Learn more <ArrowRight className="h-4 w-4 text-blue-600" />
+              </button>
             </div>
 
             {/* PPC */}
@@ -291,9 +291,9 @@ export default function App() {
                   </li>
                 ))}
               </ul>
-              <a href="#" className="inline-flex items-center font-bold text-orange-600 hover:text-orange-700">
-                Learn more <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
+              <button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-orange-50 hover:-translate-y-1 hover:shadow-md mt-2">
+                Learn more <ArrowRight className="h-4 w-4 text-orange-600" />
+              </button>
             </div>
 
             {/* Social Media */}
@@ -312,9 +312,9 @@ export default function App() {
                   </li>
                 ))}
               </ul>
-              <a href="#" className="inline-flex items-center font-bold text-purple-600 hover:text-purple-700">
-                Learn more <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
+              <button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-purple-50 hover:-translate-y-1 hover:shadow-md mt-2">
+                Learn more <ArrowRight className="h-4 w-4 text-purple-600" />
+              </button>
             </div>
 
             {/* Web Dev */}
@@ -333,9 +333,9 @@ export default function App() {
                   </li>
                 ))}
               </ul>
-              <a href="#" className="inline-flex items-center font-bold text-emerald-600 hover:text-emerald-700">
-                Learn more <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
+              <button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-emerald-50 hover:-translate-y-1 hover:shadow-md mt-2">
+                Learn more <ArrowRight className="h-4 w-4 text-emerald-600" />
+              </button>
             </div>
 
             {/* AI Development */}
@@ -354,9 +354,9 @@ export default function App() {
                   </li>
                 ))}
               </ul>
-              <a href="#" className="inline-flex items-center font-bold text-indigo-600 hover:text-indigo-700">
-                Learn more <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
+              <button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-indigo-50 hover:-translate-y-1 hover:shadow-md mt-2">
+                Learn more <ArrowRight className="h-4 w-4 text-indigo-600" />
+              </button>
             </div>
 
             {/* AI Voice Calling */}
@@ -375,9 +375,9 @@ export default function App() {
                   </li>
                 ))}
               </ul>
-              <a href="#" className="inline-flex items-center font-bold text-rose-600 hover:text-rose-700">
-                Learn more <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
+              <button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-rose-50 hover:-translate-y-1 hover:shadow-md mt-2">
+                Learn more <ArrowRight className="h-4 w-4 text-rose-600" />
+              </button>
             </div>
           </div>
         </div>
@@ -629,9 +629,9 @@ export default function App() {
             </div>
             <button 
               onClick={() => setCurrentView('blog')}
-              className="mt-6 md:mt-0 inline-flex items-center font-bold text-blue-600 hover:text-blue-700"
+              className="mt-6 md:mt-0 inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-slate-900 border-2 border-slate-900 shadow-sm transition-all hover:bg-slate-50 hover:-translate-y-1 hover:shadow-md"
             >
-              View all articles <ArrowRight className="ml-2 h-4 w-4" />
+              View all articles <ArrowRight className="h-4 w-4 text-blue-600" />
             </button>
           </div>
 
@@ -880,8 +880,8 @@ export default function App() {
                   At Crazy SEO Team, we stay ahead of the algorithm. Let us audit your current strategy and build a future-proof growth engine for your brand.
                 </p>
                 <button 
-                  onClick={() => setCurrentView('home')}
-                  className="rounded-full bg-blue-600 px-8 py-3 text-base font-bold text-white transition-all hover:bg-blue-700"
+                  onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'}), 100); }}
+                  className="rounded-full bg-blue-600 px-8 py-3 text-base font-bold text-white border-2 border-slate-900 shadow-sm transition-all hover:bg-blue-700 hover:-translate-y-1 hover:shadow-md"
                 >
                   Get Your Free Audit
                 </button>
@@ -951,8 +951,8 @@ export default function App() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
             <div className="lg:col-span-1">
               <div className="flex items-center gap-3 mb-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white">
-                  <TrendingUp className="h-6 w-6" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white overflow-hidden border-2 border-slate-800">
+                  <img src="https://placehold.co/100x100/8b5cf6/ffffff?text=C" alt="Crazy SEO Team Logo" className="h-full w-full object-cover" />
                 </div>
                 <span className="text-2xl font-extrabold tracking-tight text-white">
                   Crazy SEO Team
@@ -974,11 +974,11 @@ export default function App() {
             <div>
               <h4 className="text-white font-bold mb-6">Services</h4>
               <ul className="space-y-4 text-slate-400">
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Search Engine Optimization</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Social Media Marketing</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Pay-Per-Click Advertising</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Web Design & Development</a></li>
-                <li><a href="#" className="hover:text-blue-400 transition-colors">Content Marketing</a></li>
+                <li><button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('services')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="hover:text-blue-400 transition-colors">Search Engine Optimization</button></li>
+                <li><button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('services')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="hover:text-blue-400 transition-colors">Social Media Marketing</button></li>
+                <li><button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('services')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="hover:text-blue-400 transition-colors">Pay-Per-Click Advertising</button></li>
+                <li><button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('services')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="hover:text-blue-400 transition-colors">Web Design & Development</button></li>
+                <li><button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('services')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="hover:text-blue-400 transition-colors">Content Marketing</button></li>
               </ul>
             </div>
 
