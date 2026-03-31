@@ -60,7 +60,11 @@ function TTSPlayer({ text }: { text: string }) {
   const handlePlay = async () => {
     if (isPlaying || isLoading) {
       if (audioSourceRef.current) {
-        audioSourceRef.current.stop();
+        try {
+          audioSourceRef.current.stop();
+        } catch (e) {
+          // Ignore if already stopped
+        }
         audioSourceRef.current = null;
       }
       setIsPlaying(false);
@@ -70,9 +74,18 @@ function TTSPlayer({ text }: { text: string }) {
 
     setIsLoading(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      // Try multiple ways to get the API key
+      const apiKey = process.env.GEMINI_API_KEY || 
+                     (import.meta as any).env?.VITE_GEMINI_API_KEY || 
+                     process.env.API_KEY;
+
+      if (!apiKey) {
+        throw new Error("Gemini API key is missing. Please check your environment variables.");
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
       
-      let textToRead = text;
+      let textToRead = text.replace(/\s+/g, ' ').trim();
       
       // Translate if not English
       if (selectedLang !== 'en') {
@@ -80,10 +93,10 @@ function TTSPlayer({ text }: { text: string }) {
         try {
           const translationResponse = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
-            contents: [{ parts: [{ text: `Translate the following text to ${langName}. Provide only the translated text, no other commentary: "${text}"` }] }],
+            contents: [{ parts: [{ text: `Translate the following text to ${langName}. Provide only the translated text, no other commentary: "${textToRead}"` }] }],
           });
           if (translationResponse.text) {
-            textToRead = translationResponse.text;
+            textToRead = translationResponse.text.trim();
           }
         } catch (transError) {
           console.error("Translation Error, falling back to English:", transError);
@@ -105,7 +118,7 @@ function TTSPlayer({ text }: { text: string }) {
 
       const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
       if (base64Audio) {
-        const binary = atob(base64Audio);
+        const binary = atob(base64Audio.replace(/\s/g, ''));
         const bytes = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) {
           bytes[i] = binary.charCodeAt(i);
@@ -117,14 +130,16 @@ function TTSPlayer({ text }: { text: string }) {
         
         const audioContext = audioContextRef.current;
         
-        // Resume context if suspended (browser requirement)
         if (audioContext.state === 'suspended') {
           await audioContext.resume();
         }
 
         const arrayBuffer = bytes.buffer;
-        const int16Array = new Int16Array(arrayBuffer);
+        // Ensure alignment for Int16Array (2 bytes per sample)
+        const numSamples = Math.floor(arrayBuffer.byteLength / 2);
+        const int16Array = new Int16Array(arrayBuffer, 0, numSamples);
         const float32Array = new Float32Array(int16Array.length);
+        
         for (let i = 0; i < int16Array.length; i++) {
           float32Array[i] = int16Array[i] / 32768;
         }
@@ -139,10 +154,13 @@ function TTSPlayer({ text }: { text: string }) {
         source.start();
         audioSourceRef.current = source;
         setIsPlaying(true);
+      } else {
+        throw new Error("No audio data received from the model.");
       }
     } catch (error) {
       console.error("TTS Error:", error);
-      alert("Failed to generate audio. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      alert(`Failed to generate audio: ${errorMessage}. Please try again.`);
     } finally {
       setIsLoading(false);
     }
