@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { GoogleGenAI, Modality } from "@google/genai";
 import { 
   Search, 
   BarChart3, 
@@ -22,9 +23,225 @@ import {
   Users,
   Award,
   Bot,
-  Cpu
+  Cpu,
+  ChevronDown,
+  HelpCircle,
+  Play,
+  Pause,
+  Volume2,
+  Loader2
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
+// TTS Player Component
+function TTSPlayer({ text }: { text: string }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedLang, setSelectedLang] = useState('en');
+  const [showLangs, setShowLangs] = useState(false);
+  const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const languages = [
+    { code: 'en', name: 'English' },
+    { code: 'hi', name: 'Hindi' },
+    { code: 'es', name: 'Spanish' },
+    { code: 'fr', name: 'French' },
+    { code: 'de', name: 'German' },
+    { code: 'ja', name: 'Japanese' },
+    { code: 'zh', name: 'Chinese' },
+    { code: 'ar', name: 'Arabic' },
+    { code: 'ru', name: 'Russian' },
+    { code: 'pt', name: 'Portuguese' },
+  ];
+
+  const handlePlay = async () => {
+    if (isPlaying) {
+      if (audioSourceRef.current) {
+        audioSourceRef.current.stop();
+        audioSourceRef.current = null;
+      }
+      setIsPlaying(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      
+      let textToRead = text;
+      
+      // Translate if not English
+      if (selectedLang !== 'en') {
+        const langName = languages.find(l => l.code === selectedLang)?.name || 'English';
+        const translationResponse = await ai.models.generateContent({
+          model: "gemini-3-flash-preview",
+          contents: [{ parts: [{ text: `Translate the following text to ${langName}. Provide only the translated text, no other commentary: "${text}"` }] }],
+        });
+        textToRead = translationResponse.text || text;
+      }
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text: textToRead }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Kore' },
+            },
+          },
+        },
+      });
+
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio) {
+        const binary = atob(base64Audio);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+
+        if (!audioContextRef.current) {
+          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+        }
+        
+        const audioContext = audioContextRef.current;
+        const arrayBuffer = bytes.buffer;
+        const int16Array = new Int16Array(arrayBuffer);
+        const float32Array = new Float32Array(int16Array.length);
+        for (let i = 0; i < int16Array.length; i++) {
+          float32Array[i] = int16Array[i] / 32768;
+        }
+        
+        const audioBuffer = audioContext.createBuffer(1, float32Array.length, 24000);
+        audioBuffer.getChannelData(0).set(float32Array);
+        
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        source.onended = () => setIsPlaying(false);
+        source.start();
+        audioSourceRef.current = source;
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      console.error("TTS Error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (audioSourceRef.current) {
+        audioSourceRef.current.stop();
+      }
+    };
+  }, []);
+
+  return (
+    <div className="relative flex items-center gap-2">
+      <div className="relative">
+        <button 
+          onClick={() => setShowLangs(!showLangs)}
+          className="flex items-center gap-2 px-3 py-2.5 bg-slate-100 text-slate-700 rounded-full text-sm font-bold hover:bg-slate-200 transition-colors"
+        >
+          <Globe className="h-4 w-4" />
+          {languages.find(l => l.code === selectedLang)?.name}
+          <ChevronDown className={`h-3 w-3 transition-transform ${showLangs ? 'rotate-180' : ''}`} />
+        </button>
+        
+        {showLangs && (
+          <div className="absolute top-full left-0 mt-2 w-40 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 py-2 overflow-hidden">
+            {languages.map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => {
+                  setSelectedLang(lang.code);
+                  setShowLangs(false);
+                }}
+                className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${selectedLang === lang.code ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                {lang.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <button 
+        onClick={handlePlay}
+        disabled={isLoading}
+        className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all shadow-sm ${isPlaying ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-slate-100 text-slate-700 hover:bg-blue-100 hover:text-blue-600'}`}
+      >
+        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />)}
+        {isLoading ? 'Translating...' : (isPlaying ? 'Stop' : 'Listen')}
+      </button>
+    </div>
+  );
+}
+
+// Cookie Consent Banner Component
+function CookieBanner({ onPrivacyClick }: { onPrivacyClick: () => void }) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const consent = localStorage.getItem('cookie-consent');
+    if (!consent) {
+      const timer = setTimeout(() => setIsVisible(true), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const handleAccept = () => {
+    localStorage.setItem('cookie-consent', 'accepted');
+    setIsVisible(false);
+  };
+
+  const handleReject = () => {
+    localStorage.setItem('cookie-consent', 'rejected');
+    setIsVisible(false);
+  };
+
+  if (!isVisible) return null;
+
+  return (
+    <motion.div
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 100, opacity: 0 }}
+      className="fixed bottom-0 left-0 right-0 z-[60] p-4 md:p-6"
+    >
+      <div className="mx-auto max-w-7xl">
+        <div className="bg-slate-900 text-white rounded-3xl p-6 md:p-8 shadow-2xl border border-slate-800 flex flex-col lg:flex-row items-center justify-between gap-6">
+          <div className="flex items-start md:items-center gap-4">
+            <div className="bg-blue-600/20 p-3 rounded-2xl shrink-0">
+              <Activity className="h-6 w-6 text-blue-400" />
+            </div>
+            <p className="text-sm md:text-base text-slate-300 leading-relaxed">
+              We use cookies to enhance your browsing experience, serve personalized ads or content, and analyze our traffic. By clicking "Accept All", you consent to our use of cookies. Read our <button onClick={onPrivacyClick} className="text-blue-400 hover:underline font-semibold">Privacy Policy</button> for more details.
+            </p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0 w-full lg:w-auto">
+            <button
+              onClick={handleReject}
+              className="flex-1 lg:flex-none px-6 py-3 rounded-full text-sm font-bold text-slate-400 hover:text-white hover:bg-slate-800 transition-all border border-slate-800"
+            >
+              Reject All
+            </button>
+            <button
+              onClick={handleAccept}
+              className="flex-1 lg:flex-none px-8 py-3 rounded-full text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 transition-all hover:-translate-y-0.5"
+            >
+              Accept All
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -32,6 +249,30 @@ export default function App() {
   const [currentView, setCurrentView] = useState('home');
   const [analyzeUrl, setAnalyzeUrl] = useState('');
   const [analyzeStatus, setAnalyzeStatus] = useState<'idle' | 'analyzing' | 'results'>('idle');
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const faqs = [
+    {
+      question: "What is SEO and why does my business need it?",
+      answer: "SEO (Search Engine Optimization) is the process of improving your website's visibility on search engines like Google. It's crucial because it helps you attract organic (free) traffic, builds brand authority, and ensures your business is found by potential customers at the exact moment they're searching for your products or services."
+    },
+    {
+      question: "How long does it take to see results from SEO?",
+      answer: "SEO is a long-term strategy. While some technical improvements can show impact quickly, significant rankings and traffic growth typically take 3 to 6 months. This timeline depends on your industry's competitiveness, the current state of your website, and the consistency of the SEO efforts."
+    },
+    {
+      question: "What is the difference between On-Page and Off-Page SEO?",
+      answer: "On-Page SEO refers to optimizations made directly on your website, such as content quality, keyword usage, meta tags, and site speed. Off-Page SEO involves activities outside your website to improve its authority, primarily through high-quality link building, social media engagement, and brand mentions."
+    },
+    {
+      question: "Do you guarantee a #1 ranking on Google?",
+      answer: "No ethical SEO agency can guarantee a #1 ranking because search engine algorithms are constantly changing and controlled by Google. However, we guarantee to use industry-best practices, data-driven strategies, and transparent reporting to significantly improve your rankings, traffic, and conversions."
+    },
+    {
+      question: "How do you measure the success of an SEO campaign?",
+      answer: "We measure success using key performance indicators (KPIs) such as organic traffic growth, keyword ranking improvements, conversion rates, bounce rates, and overall return on investment (ROI). We provide detailed monthly reports so you can see exactly how our efforts are impacting your bottom line."
+    }
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -623,7 +864,7 @@ export default function App() {
             <div className="flex flex-col items-center text-center bg-white rounded-3xl p-10 shadow-sm border border-slate-100 hover:shadow-xl transition-all">
               <img 
                 src="/founder.jpg" 
-                alt="Founder Image" 
+                alt="Anand Kumar Singh, Founder of Crazy SEO Team" 
                 className="max-w-full h-auto rounded-2xl object-cover mb-6 border-4 border-slate-50 shadow-lg"
                 style={{ maxWidth: '100%', height: 'auto' }}
                 onError={(e) => {
@@ -641,7 +882,7 @@ export default function App() {
             <div className="flex flex-col items-center text-center bg-white rounded-3xl p-10 shadow-sm border border-slate-100 hover:shadow-xl transition-all">
               <img 
                 src="/co-founder.jpg" 
-                alt="Co-Founder Image" 
+                alt="Saurabh Anand, Co-Founder of Crazy SEO Team" 
                 className="w-48 h-48 rounded-full object-cover mb-6 border-4 border-slate-50 shadow-lg"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23e2e8f0"/><text x="50%" y="40%" font-family="sans-serif" font-size="14" font-weight="bold" fill="%2364748b" text-anchor="middle">Image Missing</text><text x="50%" y="55%" font-family="sans-serif" font-size="12" fill="%2364748b" text-anchor="middle">Upload to public folder</text><text x="50%" y="65%" font-family="sans-serif" font-size="12" font-weight="bold" fill="%2364748b" text-anchor="middle">as co-founder.jpg</text></svg>`;
@@ -705,7 +946,7 @@ export default function App() {
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-3xl transform rotate-3 scale-105 opacity-20 blur-lg"></div>
               <img 
                 src="https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" 
-                alt="Team working on strategy" 
+                alt="A professional team collaborating on a digital marketing strategy in a modern office environment" 
                 className="relative rounded-3xl shadow-2xl object-cover h-[600px] w-full"
               />
             </div>
@@ -738,7 +979,7 @@ export default function App() {
               <div className="relative h-64 md:h-full overflow-hidden">
                 <img 
                   src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" 
-                  alt="AI and SEO in 2026" 
+                  alt="AI overview on a search engine results page showing futuristic search technology" 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                 />
               </div>
@@ -754,7 +995,7 @@ export default function App() {
                   The search landscape has fundamentally shifted. With AI Overviews (SGE) dominating results and zero-click searches at an all-time high, here is how you need to adapt your strategy to win in 2026.
                 </p>
                 <div className="flex items-center gap-3">
-                  <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Author" className="w-10 h-10 rounded-full" />
+                  <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Anand Kumar Singh, SEO Expert" className="w-10 h-10 rounded-full" />
                   <div>
                     <p className="text-sm font-bold text-slate-900">Anand Kumar Singh</p>
                     <p className="text-xs text-slate-500">Founder & SEO Expert</p>
@@ -883,7 +1124,7 @@ export default function App() {
                 <div className="relative h-56 overflow-hidden">
                   <img 
                     src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-                    alt="AI and SEO in 2026" 
+                    alt="AI overview on a search engine results page showing futuristic search technology" 
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                   />
                   <div className="absolute top-4 left-4">
@@ -899,7 +1140,7 @@ export default function App() {
                     The search landscape has fundamentally shifted. With AI Overviews dominating results, here is how you need to adapt your strategy to win in 2026.
                   </p>
                   <div className="flex items-center gap-3 mt-auto pt-4 border-t border-slate-100">
-                    <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Author" className="w-8 h-8 rounded-full" />
+                    <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Anand Kumar Singh, SEO Expert" className="w-8 h-8 rounded-full" />
                     <p className="text-sm font-bold text-slate-900">Anand Kumar Singh</p>
                   </div>
                 </div>
@@ -913,7 +1154,7 @@ export default function App() {
                 <div className="relative h-56 overflow-hidden">
                   <img 
                     src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-                    alt="PPC Strategies" 
+                    alt="A person analyzing complex data charts and graphs for PPC campaign optimization" 
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                   />
                   <div className="absolute top-4 left-4">
@@ -929,7 +1170,7 @@ export default function App() {
                     Learn how to leverage first-party data and advanced tracking to maintain high conversion rates despite privacy changes.
                   </p>
                   <div className="flex items-center gap-3 mt-auto pt-4 border-t border-slate-100">
-                    <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Author" className="w-8 h-8 rounded-full" />
+                    <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Saurabh Anand, PPC Specialist" className="w-8 h-8 rounded-full" />
                     <p className="text-sm font-bold text-slate-900">Saurabh Anand</p>
                   </div>
                 </div>
@@ -943,7 +1184,7 @@ export default function App() {
                 <div className="relative h-56 overflow-hidden">
                   <img 
                     src="https://images.unsplash.com/photo-1557838923-2985c318be48?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-                    alt="Social Media Trends" 
+                    alt="A person holding a smartphone displaying various social media notification icons" 
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                   />
                   <div className="absolute top-4 left-4">
@@ -959,7 +1200,7 @@ export default function App() {
                     Why your brand needs to be on TikTok and Instagram Reels, and how to create content that actually converts.
                   </p>
                   <div className="flex items-center gap-3 mt-auto pt-4 border-t border-slate-100">
-                    <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Author" className="w-8 h-8 rounded-full" />
+                    <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Anand Kumar Singh, Social Media Expert" className="w-8 h-8 rounded-full" />
                     <p className="text-sm font-bold text-slate-900">Anand Kumar Singh</p>
                   </div>
                 </div>
@@ -989,17 +1230,20 @@ export default function App() {
               SEO in 2026: Navigating the AI-First Search Landscape
             </h1>
 
-            <div className="flex items-center gap-4 mb-12 pb-8 border-b border-slate-100">
-              <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Author" className="w-12 h-12 rounded-full" />
-              <div>
-                <p className="text-base font-bold text-slate-900">Anand Kumar Singh</p>
-                <p className="text-sm text-slate-500">Founder & SEO Expert at Crazy SEO Team</p>
+            <div className="flex flex-wrap items-center gap-4 mb-12 pb-8 border-b border-slate-100">
+              <div className="flex items-center gap-4 flex-grow">
+                <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Anand Kumar Singh, Founder of Crazy SEO Team" className="w-12 h-12 rounded-full" />
+                <div>
+                  <p className="text-base font-bold text-slate-900">Anand Kumar Singh</p>
+                  <p className="text-sm text-slate-500">Founder & SEO Expert at Crazy SEO Team</p>
+                </div>
               </div>
+              <TTSPlayer text="SEO in 2026: Navigating the AI-First Search Landscape. The digital marketing world is undergoing its most dramatic shift since the invention of the search engine. If you are still optimizing your website using the playbooks from 2023, you are already falling behind. The search landscape has fundamentally shifted. With AI Overviews dominating results, traditional SEO requires a complete overhaul. Focus on experience-driven queries, become the primary source for AI citations, and prioritize E-E-A-T. Video and visual search are also becoming dominant. Adapt or fall behind." />
             </div>
 
             <img 
               src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" 
-              alt="AI and SEO in 2026" 
+              alt="Futuristic digital interface representing AI-driven search engine optimization in 2026" 
               className="w-full h-[400px] md:h-[500px] object-cover rounded-3xl mb-12 shadow-lg" 
             />
 
@@ -1018,7 +1262,7 @@ export default function App() {
 
               <img 
                 src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" 
-                alt="Data Analytics" 
+                alt="A detailed dashboard showing real-time data analytics and performance metrics" 
                 className="w-full h-[400px] object-cover rounded-2xl mb-8" 
               />
 
@@ -1042,7 +1286,7 @@ export default function App() {
 
               <img 
                 src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" 
-                alt="Video Content Creation" 
+                alt="A content creator filming a high-quality video using a professional camera and lighting setup" 
                 className="w-full h-[400px] object-cover rounded-2xl mb-8" 
               />
 
@@ -1088,17 +1332,20 @@ export default function App() {
               Maximizing ROI with Google Ads in a Cookieless World
             </h1>
 
-            <div className="flex items-center gap-4 mb-12 pb-8 border-b border-slate-100">
-              <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Author" className="w-12 h-12 rounded-full" />
-              <div>
-                <p className="text-base font-bold text-slate-900">Saurabh Anand</p>
-                <p className="text-sm text-slate-500">PPC Specialist at Crazy SEO Team</p>
+            <div className="flex flex-wrap items-center gap-4 mb-12 pb-8 border-b border-slate-100">
+              <div className="flex items-center gap-4 flex-grow">
+                <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Saurabh Anand, PPC Specialist" className="w-12 h-12 rounded-full" />
+                <div>
+                  <p className="text-base font-bold text-slate-900">Saurabh Anand</p>
+                  <p className="text-sm text-slate-500">PPC Specialist at Crazy SEO Team</p>
+                </div>
               </div>
+              <TTSPlayer text="Maximizing ROI with Google Ads in a Cookieless World. The era of third-party cookies is officially over. Privacy regulations are tightening, and traditional PPC playbooks are obsolete. The new strategy focuses on first-party data collection, building lead generation mechanisms, and leveraging Google's Enhanced Conversions. Lean into machine learning and AI-driven bidding strategies like Broad Match to find converting users based on real-time signals. A new era of measurement demands a strategic, data-driven approach." />
             </div>
 
             <img 
               src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" 
-              alt="PPC Strategies" 
+              alt="A laptop screen displaying a Google Ads dashboard with conversion tracking data" 
               className="w-full h-[400px] md:h-[500px] object-cover rounded-3xl mb-12 shadow-lg" 
             />
 
@@ -1117,7 +1364,7 @@ export default function App() {
 
               <img 
                 src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" 
-                alt="Data Analytics" 
+                alt="A person using a tablet to review first-party data analytics and customer insights" 
                 className="w-full h-[400px] object-cover rounded-2xl mb-8" 
               />
 
@@ -1181,17 +1428,20 @@ export default function App() {
               The Rise of Short-Form Video: TikTok and Reels Strategy
             </h1>
 
-            <div className="flex items-center gap-4 mb-12 pb-8 border-b border-slate-100">
-              <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Author" className="w-12 h-12 rounded-full" />
-              <div>
-                <p className="text-base font-bold text-slate-900">Anand Kumar Singh</p>
-                <p className="text-sm text-slate-500">Founder & Social Media Expert at Crazy SEO Team</p>
+            <div className="flex flex-wrap items-center gap-4 mb-12 pb-8 border-b border-slate-100">
+              <div className="flex items-center gap-4 flex-grow">
+                <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80" alt="Anand Kumar Singh, Social Media Expert" className="w-12 h-12 rounded-full" />
+                <div>
+                  <p className="text-base font-bold text-slate-900">Anand Kumar Singh</p>
+                  <p className="text-sm text-slate-500">Founder & Social Media Expert at Crazy SEO Team</p>
+                </div>
               </div>
+              <TTSPlayer text="The Rise of Short-Form Video: TikTok and Reels Strategy. Short-form video has completely taken over the social media landscape. Algorithms now favor entertainment over followers, meaning anyone can go viral with engaging content. Focus on authenticity over production value—raw, behind-the-scenes footage often performs better. Optimize your video content for search by using relevant keywords in captions and on-screen text. Start creating today; all you need is a smartphone and an idea." />
             </div>
 
             <img 
               src="https://images.unsplash.com/photo-1557838923-2985c318be48?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" 
-              alt="Social Media Trends" 
+              alt="A vibrant collage of social media app icons and digital engagement symbols" 
               className="w-full h-[400px] md:h-[500px] object-cover rounded-3xl mb-12 shadow-lg" 
             />
 
@@ -1210,7 +1460,7 @@ export default function App() {
 
               <img 
                 src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" 
-                alt="Video Content Creation" 
+                alt="A smartphone on a tripod recording a short-form video for TikTok and Instagram Reels" 
                 className="w-full h-[400px] object-cover rounded-2xl mb-8" 
               />
 
@@ -1308,6 +1558,61 @@ export default function App() {
         </main>
       )}
 
+      {/* FAQ Section */}
+      <section id="faq" className="py-24 sm:py-32 bg-white">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-blue-600 font-bold tracking-wide uppercase text-sm mb-3">Got Questions?</h2>
+            <h3 className="text-3xl md:text-5xl font-extrabold text-slate-900 mb-6">Frequently Asked Questions</h3>
+            <p className="text-lg text-slate-600">Everything you need to know about our SEO services and how we help you grow.</p>
+          </div>
+
+          <div className="space-y-4">
+            {faqs.map((faq, index) => (
+              <div 
+                key={index} 
+                className={`border rounded-2xl transition-all duration-300 ${openFaq === index ? 'border-blue-200 bg-blue-50/30' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+              >
+                <button
+                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                  className="w-full flex items-center justify-between p-6 text-left focus:outline-none"
+                >
+                  <span className="text-lg font-bold text-slate-900 pr-8">{faq.question}</span>
+                  <div className={`shrink-0 transition-transform duration-300 ${openFaq === index ? 'rotate-180' : ''}`}>
+                    <ChevronDown className={`h-6 w-6 ${openFaq === index ? 'text-blue-600' : 'text-slate-400'}`} />
+                  </div>
+                </button>
+                <motion.div
+                  initial={false}
+                  animate={{ height: openFaq === index ? 'auto' : 0, opacity: openFaq === index ? 1 : 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="p-6 pt-0 text-slate-600 leading-relaxed border-t border-blue-100/50 mt-2">
+                    {faq.answer}
+                  </div>
+                </motion.div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-16 bg-slate-900 rounded-3xl p-8 md:p-12 text-center text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mt-10 -mr-10 h-40 w-40 bg-blue-600/20 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 -mb-10 -ml-10 h-40 w-40 bg-purple-600/20 rounded-full blur-3xl"></div>
+            
+            <HelpCircle className="h-12 w-12 text-blue-400 mx-auto mb-6" />
+            <h4 className="text-2xl font-bold mb-4">Still have questions?</h4>
+            <p className="text-slate-400 mb-8 max-w-xl mx-auto">Our team is here to help you understand how SEO can transform your business. Get in touch for a free consultation.</p>
+            <button 
+              onClick={() => document.getElementById('contact')?.scrollIntoView({behavior: 'smooth'})}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-full transition-all hover:scale-105 shadow-lg shadow-blue-600/25"
+            >
+              Contact Us Now
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="bg-slate-950 pt-20 pb-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -1353,6 +1658,7 @@ export default function App() {
               <ul className="space-y-4 text-slate-400">
                 <li><button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('about')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="hover:text-blue-400 transition-colors">About Us</button></li>
                 <li><button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('portfolio')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="hover:text-blue-400 transition-colors">Case Studies</button></li>
+                <li><button onClick={() => { setCurrentView('home'); setTimeout(() => document.getElementById('faq')?.scrollIntoView({behavior: 'smooth'}), 100); }} className="hover:text-blue-400 transition-colors">FAQ</button></li>
                 <li><button onClick={() => setCurrentView('blog')} className="hover:text-blue-400 transition-colors">Blog</button></li>
                 <li><button onClick={() => setCurrentView('privacy')} className="hover:text-blue-400 transition-colors">Privacy Policy</button></li>
                 <li><button onClick={() => setCurrentView('terms')} className="hover:text-blue-400 transition-colors">Terms of Service</button></li>
@@ -1409,6 +1715,8 @@ export default function App() {
           <path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.125.553 4.196 1.604 6.016L.273 24l6.109-1.604A11.96 11.96 0 0012.031 24c6.646 0 12.031-5.385 12.031-12.031S18.677 0 12.031 0zm3.625 17.344c-.156.443-.911.833-1.276.875-.365.042-.833.083-2.656-.677-2.188-.911-3.594-3.177-3.708-3.323-.115-.146-.885-1.177-.885-2.25 0-1.073.552-1.604.75-1.823.198-.219.432-.271.573-.271.141 0 .281 0 .406.01.135.01.323-.052.5.365.188.427.646 1.583.708 1.708.063.125.104.271.021.438-.083.167-.125.271-.25.417-.125.146-.26.313-.375.427-.125.125-.26.26-.115.51.146.25.646 1.063 1.385 1.719.958.844 1.76 1.104 2.01 1.229.25.125.396.104.542-.063.146-.167.625-.729.792-.979.167-.25.333-.208.563-.125.229.083 1.448.688 1.698.813.25.125.417.188.479.292.063.104.063.604-.094 1.042z" />
         </svg>
       </a>
+
+      <CookieBanner onPrivacyClick={() => setCurrentView('privacy')} />
     </div>
   );
 }
